@@ -5,7 +5,7 @@ import random
 st.set_page_config(page_title="Hangul Jamo Wordle", page_icon="🟩", layout="centered")
 
 # ==========================================
-# 🎨 UI Style Sheet (레트로 워들 스타일)
+# 🎨 UI Style Sheet (레트로 워들 + 가상 키보드 스타일)
 # ==========================================
 st.markdown("""
     <style>
@@ -15,7 +15,7 @@ st.markdown("""
         h1, h2, h3, p, span, div, label { font-family: 'NeoDunggeunmo', sans-serif !important; color: white; }
         h1 { color: #ffffff !important; text-align: center !important; font-size: 3rem !important; margin-bottom: 20px !important;}
         
-        /* 워들 타일 스타일 */
+        /* 🟩 워들 입력 격자판 스타일 */
         .wordle-row { display: flex; justify-content: center; margin-bottom: 6px; }
         .wordle-tile {
             width: 55px; height: 55px; line-height: 52px;
@@ -27,6 +27,20 @@ st.markdown("""
         .tile-present { background-color: #b59f3b !important; border-color: #b59f3b !important; color: white !important; }
         .tile-absent { background-color: #3a3a3c !important; border-color: #3a3a3c !important; color: #787c7e !important; }
         .tile-empty { background-color: #121213; color: #565758; border-color: #3a3a3c; }
+        
+        /* ⌨️ 가상 키보드 스타일 */
+        .kb-container { margin: 25px 0; text-align: center; }
+        .kb-row { display: flex; justify-content: center; margin-bottom: 6px; gap: 4px; }
+        .kb-key {
+            min-width: 32px; height: 42px; line-height: 42px;
+            background-color: #818384; border-radius: 4px;
+            text-align: center; font-size: 1.1rem; font-weight: bold;
+            color: white; user-select: none; padding: 0 6px;
+        }
+        .kb-correct { background-color: #538d4e !important; }
+        .kb-present { background-color: #b59f3b !important; }
+        .kb-absent { background-color: #3a3a3c !important; color: #787c7e !important; }
+        .kb-unused { background-color: #818384; }
         
         .stButton>button { background-color: #818384 !important; color: white !important; border: none !important; border-radius: 4px !important; font-size: 1.1rem !important; height: 50px; width: 100%; }
         .stButton>button:hover { background-color: #565758 !important; transform: scale(1.02); }
@@ -60,7 +74,7 @@ def decompose_hangul(word):
     return result
 
 # ==========================================
-# 📂 5자모 규격 확장 단어 데이터셋 (정확히 5칸으로 떨어지는 단어들)
+# 📂 5자모 규격 확장 단어 데이터셋
 # ==========================================
 WORD_POOL = [
     "가방", "가족", "가을", "감사", "감자", "거북", "거울", "거인", "겨울", "공기",
@@ -96,6 +110,27 @@ def reset_wordle():
     st.session_state.wordle_won = False
 
 # ==========================================
+# 📊 가상 키보드 자모음 상태 계산 함수
+# ==========================================
+def get_jamo_statuses():
+    statuses = {}
+    target_jamo = st.session_state.wordle_jamo
+    
+    for guess in st.session_state.wordle_guesses:
+        guess_jamo = decompose_hangul(guess)
+        for i in range(min(len(guess_jamo), 5)):
+            char = guess_jamo[i]
+            if char == target_jamo[i]:
+                statuses[char] = "correct"  # 초록색 우선순위 1등
+            elif char in target_jamo:
+                if statuses.get(char) != "correct":
+                    statuses[char] = "present"  # 노란색 우선순위 2등
+            else:
+                if char not in statuses:
+                    statuses[char] = "absent"  # 회색 우선순위 3등
+    return statuses
+
+# ==========================================
 # 🖥️ 게임 화면 구현 (UI)
 # ==========================================
 st.markdown("<h1>🔠 한글 자모 워들</h1>", unsafe_allow_html=True)
@@ -107,7 +142,6 @@ target_jamo = st.session_state.wordle_jamo
 
 for row_idx in range(6):
     html_row = '<div class="wordle-row">'
-    
     if row_idx < len(st.session_state.wordle_guesses):
         guess_word = st.session_state.wordle_guesses[row_idx]
         guess_jamo = decompose_hangul(guess_word)
@@ -121,8 +155,7 @@ for row_idx in range(6):
                 taken[i] = True
                 
         for i in range(5):
-            if tile_classes[i] == "tile-correct":
-                continue
+            if tile_classes[i] == "tile-correct": continue
             for j in range(5):
                 if not taken[j] and guess_jamo[i] == target_jamo[j]:
                     tile_classes[i] = "tile-present"
@@ -131,15 +164,34 @@ for row_idx in range(6):
                     
         for i in range(5):
             html_row += f'<div class="wordle-tile {tile_classes[i]}">{guess_jamo[i]}</div>'
-            
     else:
         for i in range(5):
             html_row += '<div class="wordle-tile tile-empty"></div>'
-            
     html_row += '</div>'
     st.markdown(html_row, unsafe_allow_html=True)
 
-st.write("")
+# ==========================================
+# ⌨️ 실시간 음영 처리 가상 키보드 전광판
+# ==========================================
+jamo_statuses = get_jamo_statuses()
+
+# 표준 두벌식 자판 배열 규격 적용 (쌍자음 포함 최적화)
+keyboard_layout = [
+    ['ㅂ', 'ㅈ', 'ㄷ', 'ㄱ', 'ㄲ', 'ㅅ', 'ㅆ', 'ㅛ', 'ㅕ', 'ㅑ', 'ㅐ', 'ㅔ'],
+    ['ㅁ', 'ㄴ', 'ㅇ', 'ㄹ', 'ㅎ', 'ㅗ', 'ㅓ', 'ㅏ', 'ㅣ'],
+    ['ㅋ', 'ㅌ', 'ㅊ', 'ㅍ', 'ㅠ', 'ㅜ', 'ㅡ']
+]
+
+kb_html = '<div class="kb-container">'
+for row in keyboard_layout:
+    kb_html += '<div class="kb-row">'
+    for char in row:
+        status = jamo_statuses.get(char, 'unused')
+        kb_html += f'<div class="kb-key kb-{status}">{char}</div>'
+    kb_html += '</div>'
+kb_html += '</div>'
+
+st.markdown(kb_html, unsafe_allow_html=True)
 st.divider()
 
 # ==========================================
@@ -152,12 +204,10 @@ if not st.session_state.wordle_game_over:
         
         if submit_button:
             guess_decomposed = decompose_hangul(user_guess)
-            
             if len(guess_decomposed) != 5:
                 st.warning(f"⚠️ 5칸 자모음 규격에 맞지 않습니다! 입력하신 단어는 분해 시 {len(guess_decomposed)}칸입니다. (예: 하+ㄴ+ㅡ+ㄹ = 5칸)")
             else:
                 st.session_state.wordle_guesses.append(user_guess)
-                
                 if user_guess == st.session_state.wordle_secret:
                     st.session_state.wordle_game_over = True
                     st.session_state.wordle_won = True
@@ -167,14 +217,12 @@ if not st.session_state.wordle_game_over:
                     st.rerun()
                 else:
                     st.rerun()
-
 else:
     if st.session_state.wordle_won:
         st.success(f"🎉 대단합니다! {len(st.session_state.wordle_guesses)}번째 시도 만에 정답 [{st.session_state.wordle_secret}]을 맞히셨습니다!")
     else:
         st.error(f"😢 아쉽습니다! 모든 기회를 소진하셨습니다. 정답은 💡 [{st.session_state.wordle_secret}] 이었습니다.")
         
-    # --- 🔗 💡 국어사전 연동 버튼 마크다운 추가 ---
     st.markdown(f"""
         <div style="text-align: center; margin: 20px 0;">
             <a href="https://ko.dict.naver.com/#/search?query={st.session_state.wordle_secret}" target="_blank" 
@@ -183,7 +231,6 @@ else:
             </a>
         </div>
     """, unsafe_allow_html=True)
-    # ---------------------------------------------
         
     if st.button("🔄 다음 단어 도전하기"):
         reset_wordle()
