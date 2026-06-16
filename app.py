@@ -62,7 +62,6 @@ def decompose_hangul(word):
 # ==========================================
 # 📂 5자모 규격 단어 데이터셋
 # ==========================================
-# 자모음 분해 시 딱 5글자가 나오는 엄선된 2글자 단어들입니다. (예: ㅎ+ㅏ+ㄴ+ㅡ+ㄹ = 5칸)
 WORD_POOL = ["하늘", "구름", "수박", "학교", "김치", "바람", "마음", "가을", "겨울", "기린", "우산", "노트", "수첩", "마늘"]
 
 # ==========================================
@@ -86,31 +85,27 @@ def reset_wordle():
 # 🖥️ 게임 화면 구현 (UI)
 # ==========================================
 st.markdown("<h1>🔠 한글 자모 워들</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; color:#818384; margin-top:-10px;'>5개의 자모음으로 이루어진 단어를 맞추세요! (기회 5번)</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#818384; margin-top:-10px;'>5개의 자모음으로 이루어진 단어를 맞추세요! (기회 6번)</p>", unsafe_allow_html=True)
 st.write("")
 
-# 🟩 5x5 워들 격자판 그리기
+# 🟩 5x6 워들 격자판 그리기 (6줄로 수정됨)
 target_jamo = st.session_state.wordle_jamo
 
-for row_idx in range(5):
+for row_idx in range(6):
     html_row = '<div class="wordle-row">'
     
     if row_idx < len(st.session_state.wordle_guesses):
-        # 이미 입력한 추측 턴 계산 및 시각화
         guess_word = st.session_state.wordle_guesses[row_idx]
         guess_jamo = decompose_hangul(guess_word)
         
-        # 워들 정답 체크 알고리즘 (🟩, 🟨, ⬛ 판별)
         tile_classes = ["tile-absent"] * 5
         taken = [False] * 5
         
-        # 1. 🟩 스트라이크(초록색) 체크
         for i in range(5):
             if guess_jamo[i] == target_jamo[i]:
                 tile_classes[i] = "tile-correct"
                 taken[i] = True
                 
-        # 2. 🟨 볼(노란색) 체크
         for i in range(5):
             if tile_classes[i] == "tile-correct":
                 continue
@@ -120,12 +115,10 @@ for row_idx in range(5):
                     taken[j] = True
                     break
                     
-        # 타일 HTML 생성
         for i in range(5):
             html_row += f'<div class="wordle-tile {tile_classes[i]}">{guess_jamo[i]}</div>'
             
     else:
-        # 아직 입력하지 않은 빈 타일 줄
         for i in range(5):
             html_row += '<div class="wordle-tile tile-empty"></div>'
             
@@ -146,26 +139,22 @@ if not st.session_state.wordle_game_over:
         if submit_button:
             guess_decomposed = decompose_hangul(user_guess)
             
-            # 🛑 유효성 검사: 자모음 길이가 딱 5글자가 맞는지 체크
             if len(guess_decomposed) != 5:
                 st.warning(f"⚠️ 5칸 자모음 규격에 맞지 않습니다! 입력하신 단어는 분해 시 {len(guess_decomposed)}칸입니다. (예: 하+ㄴ+ㅡ+ㄹ = 5칸)")
             else:
                 st.session_state.wordle_guesses.append(user_guess)
                 
-                # 정답 맞춤 성공 조건
                 if user_guess == st.session_state.wordle_secret:
                     st.session_state.wordle_game_over = True
                     st.session_state.wordle_won = True
                     st.rerun()
-                # 5번 기회 모두 소진 시 실패 조건
-                elif len(st.session_state.wordle_guesses) >= 5:
+                elif len(st.session_state.wordle_guesses) >= 6: # 6번으로 수정됨
                     st.session_state.wordle_game_over = True
                     st.rerun()
                 else:
                     st.rerun()
 
 else:
-    # 🎉 게임 종료 화면 (성공 / 실패)
     if st.session_state.wordle_won:
         st.success(f"🎉 대단합니다! {len(st.session_state.wordle_guesses)}번째 시도 만에 정답 [{st.session_state.wordle_secret}]을 맞히셨습니다!")
     else:
