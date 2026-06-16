@@ -1,0 +1,176 @@
+import streamlit as st
+import random
+
+# --- 🎮 Web Page Configuration ---
+st.set_page_config(page_title="Hangul Jamo Wordle", page_icon="🟩", layout="centered")
+
+# ==========================================
+# 🎨 UI Style Sheet (레트로 워들 스타일)
+# ==========================================
+st.markdown("""
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.530/neodgm/style.css');
+        [data-testid="stAppViewContainer"] { background-color: #121213 !important; }
+        
+        h1, h2, h3, p, span, div, label { font-family: 'NeoDunggeunmo', sans-serif !important; color: white; }
+        h1 { color: #ffffff !important; text-align: center !important; font-size: 3rem !important; margin-bottom: 20px !important;}
+        
+        /* 워들 타일 스타일 */
+        .wordle-row { display: flex; justify-content: center; margin-bottom: 6px; }
+        .wordle-tile {
+            width: 55px; height: 55px; line-height: 52px;
+            border: 2px solid #3a3a3c; border-radius: 4px;
+            text-align: center; font-size: 1.6rem; font-weight: bold;
+            margin: 0 3px; user-select: none;
+        }
+        .tile-correct { background-color: #538d4e !important; border-color: #538d4e !important; color: white !important; }
+        .tile-present { background-color: #b59f3b !important; border-color: #b59f3b !important; color: white !important; }
+        .tile-absent { background-color: #3a3a3c !important; border-color: #3a3a3c !important; color: #787c7e !important; }
+        .tile-empty { background-color: #121213; color: #565758; border-color: #3a3a3c; }
+        
+        .stButton>button { background-color: #818384 !important; color: white !important; border: none !important; border-radius: 4px !important; font-size: 1.1rem !important; height: 50px; width: 100%; }
+        .stButton>button:hover { background-color: #565758 !important; transform: scale(1.02); }
+        .stTextInput input { background-color: #121213 !important; color: white !important; border: 2px solid #3a3a3c !important; font-size: 1.3rem !important; text-align: center !important; }
+        .stTextInput input:focus { border-color: #818384 !important; }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==========================================
+# 🧩 한글 자모음 분해 함수 (Pure Python)
+# ==========================================
+def decompose_hangul(word):
+    CHOSUNG = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+    JUNGSUNG = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
+    JONGSUNG = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+    
+    result = []
+    for char in word:
+        if '가' <= char <= '힣':
+            char_code = ord(char) - 0xAC00
+            cho = char_code // (21 * 28)
+            jung = (char_code % (21 * 28)) // 28
+            jong = (char_code % (21 * 28)) % 28
+            
+            result.append(CHOSUNG[cho])
+            result.append(JUNGSUNG[jung])
+            if JONGSUNG[jong] != '':
+                result.append(JONGSUNG[jong])
+        else:
+            result.append(char)
+    return result
+
+# ==========================================
+# 📂 5자모 규격 단어 데이터셋
+# ==========================================
+# 자모음 분해 시 딱 5글자가 나오는 엄선된 2글자 단어들입니다. (예: ㅎ+ㅏ+ㄴ+ㅡ+ㄹ = 5칸)
+WORD_POOL = ["하늘", "구름", "수박", "학교", "김치", "바람", "마음", "가을", "겨울", "기린", "우산", "노트", "수첩", "마늘"]
+
+# ==========================================
+# 🧠 세션 상태 (메모리) 초기화
+# ==========================================
+if "wordle_secret" not in st.session_state:
+    st.session_state.wordle_secret = random.choice(WORD_POOL)
+    st.session_state.wordle_jamo = decompose_hangul(st.session_state.wordle_secret)
+    st.session_state.wordle_guesses = []
+    st.session_state.wordle_game_over = False
+    st.session_state.wordle_won = False
+
+def reset_wordle():
+    st.session_state.wordle_secret = random.choice(WORD_POOL)
+    st.session_state.wordle_jamo = decompose_hangul(st.session_state.wordle_secret)
+    st.session_state.wordle_guesses = []
+    st.session_state.wordle_game_over = False
+    st.session_state.wordle_won = False
+
+# ==========================================
+# 🖥️ 게임 화면 구현 (UI)
+# ==========================================
+st.markdown("<h1>🔠 한글 자모 워들</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center; color:#818384; margin-top:-10px;'>5개의 자모음으로 이루어진 단어를 맞추세요! (기회 5번)</p>", unsafe_allow_html=True)
+st.write("")
+
+# 🟩 5x5 워들 격자판 그리기
+target_jamo = st.session_state.wordle_jamo
+
+for row_idx in range(5):
+    html_row = '<div class="wordle-row">'
+    
+    if row_idx < len(st.session_state.wordle_guesses):
+        # 이미 입력한 추측 턴 계산 및 시각화
+        guess_word = st.session_state.wordle_guesses[row_idx]
+        guess_jamo = decompose_hangul(guess_word)
+        
+        # 워들 정답 체크 알고리즘 (🟩, 🟨, ⬛ 판별)
+        tile_classes = ["tile-absent"] * 5
+        taken = [False] * 5
+        
+        # 1. 🟩 스트라이크(초록색) 체크
+        for i in range(5):
+            if guess_jamo[i] == target_jamo[i]:
+                tile_classes[i] = "tile-correct"
+                taken[i] = True
+                
+        # 2. 🟨 볼(노란색) 체크
+        for i in range(5):
+            if tile_classes[i] == "tile-correct":
+                continue
+            for j in range(5):
+                if not taken[j] and guess_jamo[i] == target_jamo[j]:
+                    tile_classes[i] = "tile-present"
+                    taken[j] = True
+                    break
+                    
+        # 타일 HTML 생성
+        for i in range(5):
+            html_row += f'<div class="wordle-tile {tile_classes[i]}">{guess_jamo[i]}</div>'
+            
+    else:
+        # 아직 입력하지 않은 빈 타일 줄
+        for i in range(5):
+            html_row += '<div class="wordle-tile tile-empty"></div>'
+            
+    html_row += '</div>'
+    st.markdown(html_row, unsafe_allow_html=True)
+
+st.write("")
+st.divider()
+
+# ==========================================
+# 🎮 유저 입력 및 게임 상태 컨트롤
+# ==========================================
+if not st.session_state.wordle_game_over:
+    with st.form("wordle_input_form", clear_on_submit=True):
+        user_guess = st.text_input("단어 입력 (예: 하늘, 구름, 수박)", max_chars=6, placeholder="정답 예측하기...").strip()
+        submit_button = st.form_submit_button("제출하기 (ENTER)")
+        
+        if submit_button:
+            guess_decomposed = decompose_hangul(user_guess)
+            
+            # 🛑 유효성 검사: 자모음 길이가 딱 5글자가 맞는지 체크
+            if len(guess_decomposed) != 5:
+                st.warning(f"⚠️ 5칸 자모음 규격에 맞지 않습니다! 입력하신 단어는 분해 시 {len(guess_decomposed)}칸입니다. (예: 하+ㄴ+ㅡ+ㄹ = 5칸)")
+            else:
+                st.session_state.wordle_guesses.append(user_guess)
+                
+                # 정답 맞춤 성공 조건
+                if user_guess == st.session_state.wordle_secret:
+                    st.session_state.wordle_game_over = True
+                    st.session_state.wordle_won = True
+                    st.rerun()
+                # 5번 기회 모두 소진 시 실패 조건
+                elif len(st.session_state.wordle_guesses) >= 5:
+                    st.session_state.wordle_game_over = True
+                    st.rerun()
+                else:
+                    st.rerun()
+
+else:
+    # 🎉 게임 종료 화면 (성공 / 실패)
+    if st.session_state.wordle_won:
+        st.success(f"🎉 대단합니다! {len(st.session_state.wordle_guesses)}번째 시도 만에 정답 [{st.session_state.wordle_secret}]을 맞히셨습니다!")
+    else:
+        st.error(f"😢 아쉽습니다! 모든 기회를 소진하셨습니다. 정답은 💡 [{st.session_state.wordle_secret}] 이었습니다.")
+        
+    if st.button("🔄 다음 단어 도전하기"):
+        reset_wordle()
+        st.rerun()
