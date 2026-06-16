@@ -5,7 +5,7 @@ import random
 st.set_page_config(page_title="Hangul Wordle", page_icon="📝", layout="centered")
 
 # ==========================================
-# 🎨 UI Style Sheet (흰색 줄선 노트 감성 & 폼 다이어트)
+# 🎨 UI Style Sheet (노트 감성 + 중앙 정렬 다이어트)
 # ==========================================
 st.markdown("""
     <style>
@@ -21,11 +21,10 @@ st.markdown("""
             background-attachment: local !important;
         }
         
-        /* 텍스트를 검은색 계열로 변경 */
         h1, h2, h3, p, span, label { font-family: 'NeoDunggeunmo', sans-serif !important; color: #333333 !important; }
         h1 { text-align: center !important; font-size: 3rem !important; margin-bottom: 20px !important; color: #1e3a8a !important; text-shadow: 2px 2px 0px rgba(0,0,0,0.1); }
         
-        /* 🟩 워들 입력 격자판 스타일 (노트 버전) */
+        /* 🟩 워들 격자판 스타일 */
         .wordle-row { display: flex; justify-content: center; margin-bottom: 6px; }
         .wordle-tile {
             width: 55px; height: 55px; line-height: 52px;
@@ -40,8 +39,8 @@ st.markdown("""
         .tile-absent { background-color: #787c7e !important; border-color: #787c7e !important; color: white !important; }
         .tile-empty { border-color: #d3d6da; }
         
-        /* ⌨️ 가상 키보드 스타일 (노트 버전) */
-        .kb-container { margin: 25px 0; text-align: center; }
+        /* ⌨️ 가상 키보드 스타일 */
+        .kb-container { margin: 25px 0 15px 0; text-align: center; }
         .kb-row { display: flex; justify-content: center; margin-bottom: 6px; gap: 4px; }
         .kb-key {
             min-width: 32px; height: 42px; line-height: 42px;
@@ -53,14 +52,29 @@ st.markdown("""
         .kb-present { background-color: #b59f3b !important; color: white !important; border-color: #b59f3b !important; }
         .kb-absent { background-color: #787c7e !important; color: white !important; border-color: #787c7e !important; }
         
-        /* 인풋창 & 버튼 노트 스타일로 수정 */
-        .stButton>button, .stFormSubmitButton>button { background-color: #3b82f6 !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-size: 1.2rem !important; height: 50px; width: 100%; font-family: 'NeoDunggeunmo', sans-serif !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .stButton>button:hover, .stFormSubmitButton>button:hover { background-color: #2563eb !important; transform: scale(1.02); }
-        .stTextInput input { background-color: rgba(255,255,255,0.9) !important; color: #111111 !important; border: 2px solid #3b82f6 !important; font-size: 1.3rem !important; text-align: center !important; border-radius: 8px !important; }
-        
-        /* 🔥 폼 테두리 및 여백 완전 제거 (다이어트) */
-        [data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; }
+        /* 🔥 폼(입력창) 중앙 정렬 및 너비 축소 마법 */
+        [data-testid="stForm"] { 
+            border: none !important; 
+            padding: 0 !important; 
+            background: transparent !important; 
+            max-width: 380px !important; /* 키보드 너비와 일치시킴 */
+            margin: 0 auto !important; /* 화면 정중앙 배치 */
+        }
         div[data-testid="stForm"] > div { row-gap: 5px !important; }
+        
+        /* 인풋창 & 버튼 높이 맞춤 */
+        .stButton>button, .stFormSubmitButton>button { 
+            background-color: #3b82f6 !important; color: white !important; 
+            border: 2px solid #2563eb !important; border-radius: 8px !important; 
+            font-size: 1.1rem !important; height: 45px; width: 100%; 
+            font-family: 'NeoDunggeunmo', sans-serif !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .stButton>button:hover, .stFormSubmitButton>button:hover { background-color: #2563eb !important; transform: scale(1.02); }
+        .stTextInput input { 
+            background-color: rgba(255,255,255,0.9) !important; color: #111111 !important; 
+            border: 2px solid #3b82f6 !important; font-size: 1.2rem !important; 
+            text-align: center !important; border-radius: 8px !important; height: 45px !important;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -142,13 +156,21 @@ st.markdown("<h1>📝 한글 자모 워들</h1>", unsafe_allow_html=True)
 # 🚪 로그인 화면 (DB 없이 이름만 기억)
 if st.session_state.wordle_nickname is None:
     st.markdown("<p style='text-align:center;'>공책에 이름을 적고 게임을 시작하세요!</p>", unsafe_allow_html=True)
-    nickname_input = st.text_input("닉네임", placeholder="예: 워들고수99", label_visibility="collapsed")
-    if st.button("✏️ 공책 펴고 시작하기"):
-        if nickname_input.strip():
-            st.session_state.wordle_nickname = nickname_input.strip()
-            st.rerun()
-        else:
-            st.warning("이름을 적어주세요!")
+    
+    # 로그인 폼도 얄쌍하게 중앙 정렬
+    with st.form("login_form", clear_on_submit=True, border=False):
+        col1, col2 = st.columns([3, 2])
+        with col1:
+            nickname_input = st.text_input("닉네임", placeholder="예: 워들고수99", label_visibility="collapsed")
+        with col2:
+            submit_btn = st.form_submit_button("✏️ 시작하기")
+            
+        if submit_btn:
+            if nickname_input.strip():
+                st.session_state.wordle_nickname = nickname_input.strip()
+                st.rerun()
+            else:
+                st.warning("이름을 적어주세요!")
 
 # 🎮 실제 게임 화면
 else:
@@ -177,7 +199,7 @@ else:
         html_row += '</div>'
         st.markdown(html_row, unsafe_allow_html=True)
 
-    # ⌨️ 실시간 음영 처리 가상 키보드 (4줄 완벽 배열)
+    # ⌨️ 실시간 음영 처리 가상 키보드
     jamo_statuses = get_jamo_statuses()
     keyboard_layout = [
         ['ㅃ', 'ㅉ', 'ㄸ', 'ㄲ', 'ㅆ', 'ㅒ', 'ㅖ'],
@@ -195,42 +217,46 @@ else:
     kb_html += '</div>'
     st.markdown(kb_html, unsafe_allow_html=True)
 
-    # 🎮 유저 입력 폼 (가로로 합치고 다이어트!)
+    # 🎮 유저 입력 폼 (화면 정중앙 & 키보드와 딱 맞는 너비)
     if not st.session_state.wordle_game_over:
         with st.form("wordle_input_form", clear_on_submit=True, border=False):
-            col1, col2 = st.columns([3, 1]) # 입력창과 버튼을 3:1 비율로 한 줄 배치
+            col1, col2 = st.columns([3, 1]) 
             with col1:
-                user_guess = st.text_input("단어 입력", max_chars=6, placeholder="정답 입력...", label_visibility="collapsed").strip()
+                user_guess = st.text_input("단어 입력", max_chars=6, placeholder="이곳에 정답 입력...", label_visibility="collapsed").strip()
             with col2:
                 submit_button = st.form_submit_button("엔터 ⏎")
                 
             if submit_button:
-                guess_decomposed = decompose_hangul(user_guess)
-                if len(guess_decomposed) != 5:
-                    st.warning(f"⚠️ 5칸 자모음 규격에 맞지 않습니다! (분해 시 {len(guess_decomposed)}칸)")
+                if not user_guess:
+                    st.warning("단어를 입력해주세요!")
                 else:
-                    st.session_state.wordle_guesses.append(user_guess)
-                    if user_guess == st.session_state.wordle_secret:
-                        st.session_state.wordle_game_over = True
-                        st.session_state.wordle_won = True
-                        st.rerun()
-                    elif len(st.session_state.wordle_guesses) >= 6:
-                        st.session_state.wordle_game_over = True
-                        st.rerun()
+                    guess_decomposed = decompose_hangul(user_guess)
+                    if len(guess_decomposed) != 5:
+                        st.warning(f"⚠️ 5칸 규격에 맞지 않습니다! (분해 시 {len(guess_decomposed)}칸)")
                     else:
-                        st.rerun()
+                        st.session_state.wordle_guesses.append(user_guess)
+                        if user_guess == st.session_state.wordle_secret:
+                            st.session_state.wordle_game_over = True
+                            st.session_state.wordle_won = True
+                            st.rerun()
+                        elif len(st.session_state.wordle_guesses) >= 6:
+                            st.session_state.wordle_game_over = True
+                            st.rerun()
+                        else:
+                            st.rerun()
     else:
-        # 🎉 결과 화면
+        # 🎉 결과 화면 (마찬가지로 너비를 맞추어 출력)
+        st.markdown("<div style='max-width: 380px; margin: 0 auto;'>", unsafe_allow_html=True)
         if st.session_state.wordle_won:
-            st.success(f"🎉 정답입니다! [{st.session_state.wordle_nickname}]님이 {len(st.session_state.wordle_guesses)}번째 시도 만에 맞추셨습니다!")
+            st.success(f"🎉 정답! {len(st.session_state.wordle_guesses)}번 만에 맞추셨습니다!")
         else:
-            st.error(f"😢 기회를 모두 소진하셨습니다. 정답은 💡 [{st.session_state.wordle_secret}] 이었습니다.")
+            st.error(f"😢 아쉽습니다. 정답은 💡 [{st.session_state.wordle_secret}] 이었습니다.")
             
         st.markdown(f"""
-            <div style="text-align: center; margin: 20px 0;">
+            <div style="text-align: center; margin: 15px 0;">
                 <a href="https://ko.dict.naver.com/#/search?query={st.session_state.wordle_secret}" target="_blank" 
-                   style="background-color: #538d4e; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-family: 'NeoDunggeunmo', sans-serif; font-size: 1.1rem; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                   📖 [{st.session_state.wordle_secret}] 단어 뜻 확인하기 (국어사전)
+                   style="background-color: #538d4e; color: white; padding: 12px 0; text-decoration: none; border-radius: 8px; font-family: 'NeoDunggeunmo', sans-serif; font-size: 1.1rem; display: block; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                   📖 [{st.session_state.wordle_secret}] 국어사전 확인
                 </a>
             </div>
         """, unsafe_allow_html=True)
@@ -238,3 +264,4 @@ else:
         if st.button("🔄 다음 공책 펴기 (새 게임)"):
             reset_wordle()
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
