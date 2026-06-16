@@ -5,7 +5,7 @@ import random
 st.set_page_config(page_title="Hangul Wordle", page_icon="📝", layout="centered")
 
 # ==========================================
-# 🎨 UI Style Sheet (흰색 줄선 노트 감성)
+# 🎨 UI Style Sheet (흰색 줄선 노트 감성 & 폼 다이어트)
 # ==========================================
 st.markdown("""
     <style>
@@ -54,9 +54,13 @@ st.markdown("""
         .kb-absent { background-color: #787c7e !important; color: white !important; border-color: #787c7e !important; }
         
         /* 인풋창 & 버튼 노트 스타일로 수정 */
-        .stButton>button { background-color: #3b82f6 !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-size: 1.2rem !important; height: 50px; width: 100%; font-family: 'NeoDunggeunmo', sans-serif !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .stButton>button:hover { background-color: #2563eb !important; transform: scale(1.02); }
+        .stButton>button, .stFormSubmitButton>button { background-color: #3b82f6 !important; color: white !important; border: 2px solid #2563eb !important; border-radius: 8px !important; font-size: 1.2rem !important; height: 50px; width: 100%; font-family: 'NeoDunggeunmo', sans-serif !important; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .stButton>button:hover, .stFormSubmitButton>button:hover { background-color: #2563eb !important; transform: scale(1.02); }
         .stTextInput input { background-color: rgba(255,255,255,0.9) !important; color: #111111 !important; border: 2px solid #3b82f6 !important; font-size: 1.3rem !important; text-align: center !important; border-radius: 8px !important; }
+        
+        /* 🔥 폼 테두리 및 여백 완전 제거 (다이어트) */
+        [data-testid="stForm"] { border: none !important; padding: 0 !important; background: transparent !important; }
+        div[data-testid="stForm"] > div { row-gap: 5px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -173,7 +177,7 @@ else:
         html_row += '</div>'
         st.markdown(html_row, unsafe_allow_html=True)
 
-    # ⌨️ 실시간 음영 처리 가상 키보드
+    # ⌨️ 실시간 음영 처리 가상 키보드 (4줄 완벽 배열)
     jamo_statuses = get_jamo_statuses()
     keyboard_layout = [
         ['ㅃ', 'ㅉ', 'ㄸ', 'ㄲ', 'ㅆ', 'ㅒ', 'ㅖ'],
@@ -190,13 +194,16 @@ else:
         kb_html += '</div>'
     kb_html += '</div>'
     st.markdown(kb_html, unsafe_allow_html=True)
-    st.divider()
 
-    # 🎮 유저 입력 폼
+    # 🎮 유저 입력 폼 (가로로 합치고 다이어트!)
     if not st.session_state.wordle_game_over:
-        with st.form("wordle_input_form", clear_on_submit=True):
-            user_guess = st.text_input("단어 입력", max_chars=6, placeholder="이곳에 정답을 적으세요...").strip()
-            submit_button = st.form_submit_button("제출하기 (ENTER)")
+        with st.form("wordle_input_form", clear_on_submit=True, border=False):
+            col1, col2 = st.columns([3, 1]) # 입력창과 버튼을 3:1 비율로 한 줄 배치
+            with col1:
+                user_guess = st.text_input("단어 입력", max_chars=6, placeholder="정답 입력...", label_visibility="collapsed").strip()
+            with col2:
+                submit_button = st.form_submit_button("엔터 ⏎")
+                
             if submit_button:
                 guess_decomposed = decompose_hangul(user_guess)
                 if len(guess_decomposed) != 5:
