@@ -60,9 +60,23 @@ def decompose_hangul(word):
     return result
 
 # ==========================================
-# 📂 5자모 규격 단어 데이터셋
+# 📂 5자모 규격 확장 단어 데이터셋 (정확히 5칸으로 떨어지는 단어들)
 # ==========================================
-WORD_POOL = ["하늘", "구름", "수박", "학교", "김치", "바람", "마음", "가을", "겨울", "기린", "우산", "노트", "수첩", "마늘"]
+WORD_POOL = [
+    "가방", "가족", "가을", "감사", "감자", "거북", "거울", "거인", "겨울", "공기",
+    "과일", "구름", "국가", "글씨", "기분", "기억", "기적", "기린", "그림", "나물",
+    "남자", "내일", "냄비", "냄새", "노력", "노을", "도움", "딸기", "마늘", "마당",
+    "마술", "마을", "마음", "맥주", "매력", "문제", "문화", "미술", "바닥", "바늘",
+    "바람", "반지", "보람", "보름", "보석", "봄비", "사람", "사랑", "사막", "산소",
+    "사탕", "사진", "새싹", "소금", "소년", "소설", "소원", "수건", "수박", "수첩",
+    "숙제", "승리", "시간", "시골", "시험", "실패", "악마", "안내", "어른", "역사",
+    "여름", "열쇠", "오늘", "우산", "우정", "용서", "이름", "이슬", "인사", "자연",
+    "장미", "점수", "저녁", "주말", "참새", "천사", "축하", "침대", "콜라", "태양",
+    "팔찌", "편지", "평화", "학교", "하늘", "현재", "화산", "휴일", "희망", "김치",
+    "호박", "당근", "양파", "생강", "참외", "앵두", "안경", "지갑", "홍차", "라면",
+    "약국", "은행", "서점", "호텔", "공원", "시장", "시민", "혜성", "유성", "태풍",
+    "안개", "장마", "번개"
+]
 
 # ==========================================
 # 🧠 세션 상태 (메모리) 초기화
@@ -88,7 +102,7 @@ st.markdown("<h1>🔠 한글 자모 워들</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center; color:#818384; margin-top:-10px;'>5개의 자모음으로 이루어진 단어를 맞추세요! (기회 6번)</p>", unsafe_allow_html=True)
 st.write("")
 
-# 🟩 5x6 워들 격자판 그리기 (6줄로 수정됨)
+# 🟩 5x6 워들 격자판 그리기
 target_jamo = st.session_state.wordle_jamo
 
 for row_idx in range(6):
@@ -148,7 +162,7 @@ if not st.session_state.wordle_game_over:
                     st.session_state.wordle_game_over = True
                     st.session_state.wordle_won = True
                     st.rerun()
-                elif len(st.session_state.wordle_guesses) >= 6: # 6번으로 수정됨
+                elif len(st.session_state.wordle_guesses) >= 6:
                     st.session_state.wordle_game_over = True
                     st.rerun()
                 else:
@@ -159,6 +173,17 @@ else:
         st.success(f"🎉 대단합니다! {len(st.session_state.wordle_guesses)}번째 시도 만에 정답 [{st.session_state.wordle_secret}]을 맞히셨습니다!")
     else:
         st.error(f"😢 아쉽습니다! 모든 기회를 소진하셨습니다. 정답은 💡 [{st.session_state.wordle_secret}] 이었습니다.")
+        
+    # --- 🔗 💡 국어사전 연동 버튼 마크다운 추가 ---
+    st.markdown(f"""
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="https://ko.dict.naver.com/#/search?query={st.session_state.wordle_secret}" target="_blank" 
+               style="background-color: #538d4e; color: white; padding: 12px 25px; text-decoration: none; border-radius: 6px; font-family: 'NeoDunggeunmo', sans-serif; font-size: 1.1rem; display: inline-block; border: 2px solid #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+               📖 [{st.session_state.wordle_secret}] 단어 뜻 확인하기 (국어사전)
+            </a>
+        </div>
+    """, unsafe_allow_html=True)
+    # ---------------------------------------------
         
     if st.button("🔄 다음 단어 도전하기"):
         reset_wordle()
